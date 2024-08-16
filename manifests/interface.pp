@@ -481,7 +481,7 @@ define network::interface (
   # RedHat specific for zLinux
   Optional[Array]                       $subchannels        = undef,
   Optional[Enum['qeth', 'lcs', 'ctc']]  $nettype            = undef,
-  Optional[Enum[0, 1]                   $layer2             = undef,
+  Optional[Enum['0', '1']]              $layer2             = undef,
   Optional[String]                      $zlinux_options     = undef,
 
   ## Suse specific
