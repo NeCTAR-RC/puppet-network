@@ -270,15 +270,15 @@
 #
 define network::interface (
 
-  $enable                = true,
-  $ensure                = 'present',
-  $template              = "network/interface/${facts['os']['family']}.erb",
+  Boolean                    $enable   = true,
+  Enum['present', 'absent']  $ensure    = 'present',
+  String                     $template              = "network/interface/${facts['os']['family']}.erb",
   $options               = undef,
   $options_extra_redhat  = undef,
   $options_extra_debian  = undef,
   $options_extra_suse    = undef,
   $interface             = $name,
-  $restart_all_nic = $facts['os']['family'] ? {
+  Boolean $restart_all_nic = $facts['os']['family'] ? {
     'RedHat' => $facts['os']['release']['major'] ? {
       '8'     => false,
       default => true,
@@ -302,7 +302,7 @@ define network::interface (
 
   ## Debian specific
   $manage_order          = '10',
-  $auto                  = true,
+  Boolean $auto                  = true,
   $allow_hotplug         = undef,
   $method                = '',
   $family                = 'inet',
@@ -345,22 +345,22 @@ define network::interface (
 
   # Convenience shortcuts
   $nonlocal_gateway      = undef,
-  $additional_networks   = [ ],
+  Array $additional_networks   = [ ],
 
   # Common ifupdown scripts
-  $up                    = [ ],
-  $pre_up                = [ ],
-  $post_up               = [ ],
-  $down                  = [ ],
-  $pre_down              = [ ],
-  $post_down             = [ ],
+  Array $up                    = [ ],
+  Array $pre_up                = [ ],
+  Array $post_up               = [ ],
+  Array $down                  = [ ],
+  Array $pre_down              = [ ],
+  Array $post_down             = [ ],
 
   # For virtual routing and forwarding (VRF)
   $vrf                   = undef,
   $vrf_table             = undef,
 
   # For bonding
-  $slaves                = [ ],
+  Array $slaves                = [ ],
   $bond_mode             = undef,
   $bond_miimon           = undef,
   $bond_downdelay        = undef,
@@ -368,7 +368,7 @@ define network::interface (
   $bond_lacp_rate        = undef,
   $bond_master           = undef,
   $bond_primary          = undef,
-  $bond_slaves           = [ ],
+  Array $bond_slaves           = [ ],
   $bond_xmit_hash_policy = undef,
   $bond_num_grat_arp     = undef,
   $bond_arp_all          = undef,
@@ -385,7 +385,7 @@ define network::interface (
   $team_master           = undef,
 
   # For bridging
-  $bridge_ports          = [ ],
+  Array $bridge_ports          = [ ],
   $bridge_stp            = undef,
   $bridge_fd             = undef,
   $bridge_maxwait        = undef,
@@ -398,8 +398,8 @@ define network::interface (
   $wpa_key_mgmt          = [ ],
   $wpa_group             = [ ],
   $wpa_pairwise          = [ ],
-  $wpa_auth_alg          = [ ],
-  $wpa_proto             = [ ],
+  Array $wpa_auth_alg          = [ ],
+  Array $wpa_proto             = [ ],
   $wpa_identity          = undef,
   $wpa_password          = undef,
   $wpa_scan_ssid         = undef,
@@ -418,7 +418,7 @@ define network::interface (
   $ipv6_privacy          = undef,
   $ipv6_addr_gen_mode    = undef,
   $ipv6addr              = undef,
-  $ipv6addr_secondaries  = [],
+  Array $ipv6addr_secondaries  = [],
   $ipv6_defaultgw        = undef,
   $dhcp_hostname         = undef,
   $srcaddr               = undef,
@@ -451,7 +451,7 @@ define network::interface (
   $hotplug               = undef,
   $persistent_dhclient   = undef,
   $nm_name               = undef,
-  $iprule                = undef,
+  Optional[Array] $iprule                = undef,
 
   # RedHat specific for InfiniBand
   $connected_mode        = undef,
@@ -479,10 +479,10 @@ define network::interface (
   $ovsbootproto          = undef,
 
   # RedHat specific for zLinux
-  $subchannels           = undef,
-  $nettype               = undef,
-  $layer2                = undef,
-  $zlinux_options        = undef,
+  Optional[Array]                       $subchannels        = undef,
+  Optional[Enum['qeth', 'lcs', 'ctc']]  $nettype            = undef,
+  Optional[Enum[0, 1]                   $layer2             = undef,
+  Optional[String]                      $zlinux_options     = undef,
 
   ## Suse specific
   $startmode             = '',
@@ -513,40 +513,6 @@ define network::interface (
 
   include ::network
 
-  validate_re($ensure, '^(present|absent)$', "Ensure can only be present or absent (to add or remove an interface). Current value: ${ensure}")
-  validate_bool($auto)
-  validate_bool($enable)
-  validate_bool($restart_all_nic)
-
-  validate_array($up)
-  validate_array($pre_up)
-  validate_array($down)
-  validate_array($pre_down)
-  validate_array($slaves)
-  validate_array($bond_slaves)
-  validate_array($bridge_ports)
-  validate_array($wpa_key_mgmt)
-  validate_array($wpa_group)
-  validate_array($wpa_pairwise)
-  validate_array($wpa_auth_alg)
-  validate_array($wpa_proto)
-
-  # $subchannels is only valid for zLinux/SystemZ/s390x.
-  if $facts['os']['architecture'] == 's390x' {
-    validate_array($subchannels)
-    validate_re($nettype, '^(qeth|lcs|ctc)$', "${name}::\$nettype may be 'qeth', 'lcs' or 'ctc' only and is set to <${nettype}>.")
-    # Different parameters required for RHEL6 and RHEL7
-    if $facts['os']['release']['major'] =~ /^7|^8/ {
-      validate_string($zlinux_options)
-    } else {
-      validate_re($layer2, '^0|1$', "${name}::\$layer2 must be 1 or 0 and is to <${layer2}>.")
-    }
-  }
-  if $facts['os']['family'] == 'RedHat' {
-    if $iprule != undef {
-      validate_array($iprule)
-    }
-  }
   if $arp != undef and ! ($arp in ['yes', 'no']) {
     fail('arp must be one of: undef, yes, no')
   }
